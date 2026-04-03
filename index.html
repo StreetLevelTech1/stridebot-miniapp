@@ -670,8 +670,106 @@ function predict(d){const n=parseInt(document.getElementById('streak-n').textCon
 function toast_(m){const el=document.getElementById('tst');el.textContent=m;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2600)}
 
 renderCards();renderBanks(BANKS);gotoStep('s1');
-setInterval(()=>{S.prices.BTC=Math.round(84200+(Math.random()-.5)*300);S.prices.SOL=parseFloat((142.3+(Math.random()-.5)*4).toFixed(2));document.getElementById('m-btc').textContent='$'+S.prices.BTC.toLocaleString();document.getElementById('m-sol').textContent='$'+S.prices.SOL;document.getElementById('pred-p').textContent='$'+S.prices.BTC.toLocaleString();document.getElementById('cp-btc').textContent='$'+S.prices.BTC.toLocaleString()},9000);
-const STRIDEBOT_API = 'https://stridebot.onrender.com';
+
+// ── Real data fetching ─────────────────────────────────
+// API_BASE points to the bot server. Telegram Mini Apps run inside
+// Telegram and can call the bot's Render URL directly.
+const API_BASE = (typeof STRIDEBOT_API !== 'https://stridebot.onrender.com') ? STRIDEBOT_API : '';
+
+async function fetchPrices() {
+  if (!API_BASE) return;
+  try {
+    const res = await fetch(API_BASE + '/api/prices');
+    const data = await res.json();
+    if (!data.ok) return;
+    const p = data.prices;
+    S.prices = {...S.prices, ...Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.price]))};
+    // Markets tab
+    if (p.BTC) {
+      document.getElementById('m-btc').textContent = '$' + Math.round(p.BTC.price).toLocaleString();
+      document.getElementById('m-btc-c').textContent = (p.BTC.change >= 0 ? '+' : '') + p.BTC.change + '%';
+      document.getElementById('m-btc-c').className = 'pchg ' + (p.BTC.change >= 0 ? 'up' : 'dn');
+    }
+    if (p.ETH) {
+      document.getElementById('m-eth').textContent = '$' + Math.round(p.ETH.price).toLocaleString();
+      document.getElementById('m-eth-c').textContent = (p.ETH.change >= 0 ? '+' : '') + p.ETH.change + '%';
+      document.getElementById('m-eth-c').className = 'pchg ' + (p.ETH.change >= 0 ? 'up' : 'dn');
+    }
+    if (p.SOL) {
+      document.getElementById('m-sol').textContent = '$' + p.SOL.price.toFixed(2);
+      document.getElementById('m-sol-c').textContent = (p.SOL.change >= 0 ? '+' : '') + p.SOL.change + '%';
+      document.getElementById('m-sol-c').className = 'pchg ' + (p.SOL.change >= 0 ? 'up' : 'dn');
+    }
+    // Crypto selectors
+    if (p.BTC) { document.getElementById('cp-btc').textContent = '$' + Math.round(p.BTC.price).toLocaleString(); }
+    if (p.TON) { document.getElementById('cp-ton').textContent = '$' + p.TON.price.toFixed(2); }
+    if (p.SOL) { document.getElementById('cp-sol').textContent = '$' + p.SOL.price.toFixed(2); }
+    // Prediction
+    if (p.BTC) { document.getElementById('pred-p').textContent = '$' + Math.round(p.BTC.price).toLocaleString(); }
+  } catch(e) { /* silent fallback to mock data */ }
+}
+
+async function fetchFearGreed() {
+  if (!API_BASE) return;
+  try {
+    const res = await fetch(API_BASE + '/api/feargreed');
+    const data = await res.json();
+    if (!data.ok) return;
+    const v = data.value;
+    document.getElementById('fg-n').textContent = v;
+    document.getElementById('fg-l').textContent = data.classification;
+    document.getElementById('fg-b').style.width = v + '%';
+    const color = v < 25 ? '#F87171' : v < 50 ? '#FBBF24' : v < 75 ? '#34D399' : '#10B981';
+    document.getElementById('fg-n').style.color = color;
+  } catch(e) {}
+}
+
+async function fetchNews() {
+  if (!API_BASE) return;
+  try {
+    const res = await fetch(API_BASE + '/api/news');
+    const data = await res.json();
+    if (!data.ok || !data.articles?.length) return;
+    const catMap = {
+      BTC: 'nb3 nb-btc', ETH: 'nb3 nb-eth', SOL: 'nb3 nb-sol',
+      MACRO: 'nb3 nb-macro', DEFI: 'nb3 nb-defi', BREAKING: 'nb3 nb-break', CRYPTO: 'nb3 nb-sol'
+    };
+    const catLabel = {BTC:'₿ BTC',ETH:'⬡ ETH',SOL:'◎ SOL',MACRO:'📊 MACRO',DEFI:'🌊 DEFI',BREAKING:'🔴 BREAKING',CRYPTO:'📰 CRYPTO'};
+    const nl = document.getElementById('news-list');
+    nl.innerHTML = data.articles.map(a => `
+      <div class="ni">
+        <div class="ni-m">
+          <span class="${catMap[a.category]||'nb3 nb-sol'}">${catLabel[a.category]||a.category}</span>
+          <span class="nt">just now</span>
+        </div>
+        <div class="ntit">${a.title}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function fetchRates() {
+  if (!API_BASE) return;
+  try {
+    const res = await fetch(API_BASE + '/api/rates');
+    const data = await res.json();
+    if (data.usd_ngn) {
+      S.usdNgn = data.usd_ngn;
+      document.getElementById('live-ngn').textContent = '₦' + data.usd_ngn.toLocaleString();
+    }
+  } catch(e) {}
+}
+
+// Initial data load
+(async () => {
+  await Promise.all([fetchPrices(), fetchFearGreed(), fetchNews(), fetchRates()]);
+})();
+
+// Refresh every 30 seconds
+setInterval(fetchPrices, 30000);
+setInterval(fetchFearGreed, 120000);
+setInterval(fetchNews, 60000);
+setInterval(fetchRates, 300000);
 </script>
 </body>
 </html>
