@@ -674,7 +674,7 @@ renderCards();renderBanks(BANKS);gotoStep('s1');
 // ── Real data fetching ─────────────────────────────────
 // API_BASE points to the bot server. Telegram Mini Apps run inside
 // Telegram and can call the bot's Render URL directly.
-const API_BASE = (typeof STRIDEBOT_API !== 'https://stridebot.onrender.com') ? STRIDEBOT_API : '';
+const API_BASE = (typeof STRIDEBOT_API !== 'https://stridebot.onrender.com/') ? STRIDEBOT_API : '';
 
 async function fetchPrices() {
   if (!API_BASE) return;
