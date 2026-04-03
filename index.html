@@ -671,6 +671,7 @@ function toast_(m){const el=document.getElementById('tst');el.textContent=m;el.c
 
 renderCards();renderBanks(BANKS);gotoStep('s1');
 setInterval(()=>{S.prices.BTC=Math.round(84200+(Math.random()-.5)*300);S.prices.SOL=parseFloat((142.3+(Math.random()-.5)*4).toFixed(2));document.getElementById('m-btc').textContent='$'+S.prices.BTC.toLocaleString();document.getElementById('m-sol').textContent='$'+S.prices.SOL;document.getElementById('pred-p').textContent='$'+S.prices.BTC.toLocaleString();document.getElementById('cp-btc').textContent='$'+S.prices.BTC.toLocaleString()},9000);
+const STRIDEBOT_API = 'https://stridebot.onrender.com';
 </script>
 </body>
 </html>
